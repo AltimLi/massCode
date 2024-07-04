@@ -55,13 +55,17 @@ export interface State {
   theme: Theme
   sizes: AppSizes
   showTags: boolean
+  showModal: boolean
   version: string
   editor: EditorSettings
   selectedPreferencesMenu: string
+  selectedDevtoolsMenu: string
   screenshot: ScreenshotSettings
   markdown: MarkdownSettings
   codePreview: CodePreviewSettings
   language: string
+  history: string[]
+  historyIndex: number
   isInit: boolean
   isSponsored: boolean
 }

@@ -1,7 +1,7 @@
 import { createMenu } from '../components/menu'
 import type { MenuItemConstructorOptions } from 'electron'
 import { shell, dialog, BrowserWindow } from 'electron'
-import { version, repository } from '../../../package.json'
+import { version } from '../../../package.json'
 import os from 'os'
 import { checkForUpdate } from '../services/update-check'
 import { store } from '../store'
@@ -29,7 +29,7 @@ const aboutApp = () => {
 }
 
 const appMenuCommon: Record<
-'preferences' | 'quit' | 'update',
+'preferences' | 'quit' | 'update' | 'devtools',
 MenuItemConstructorOptions
 > = {
   preferences: {
@@ -41,6 +41,13 @@ MenuItemConstructorOptions
       )
     }
   },
+  devtools: {
+    label: i18n.t('menu:devtools.label') + '...',
+    accelerator: 'CommandOrControl+.',
+    click: () => {
+      BrowserWindow.getFocusedWindow()?.webContents.send('main-menu:devtools')
+    }
+  },
   update: {
     label: i18n.t('menu:app.update.label'),
     click: async () => {
@@ -50,8 +57,6 @@ MenuItemConstructorOptions
         const buttonId = dialog.showMessageBoxSync(
           BrowserWindow.getFocusedWindow()!,
           {
-            // message: `Version ${newVersion} is now available for download.\nYour version is ${version}.`,
-            // buttons: ['Go to GitHub', 'OK'],
             message: i18n.t('menu:app.update.message', {
               newVersion,
               oldVersion: version
@@ -66,7 +71,7 @@ MenuItemConstructorOptions
         )
 
         if (buttonId === 0) {
-          shell.openExternal(`${repository}/releases`)
+          shell.openExternal('https://masscode.io/download/latest-release.html')
         }
       } else {
         dialog.showMessageBoxSync(BrowserWindow.getFocusedWindow()!, {
@@ -99,6 +104,12 @@ const appMenuMac: MenuItemConstructorOptions[] = [
     type: 'separator'
   },
   {
+    ...appMenuCommon.devtools
+  },
+  {
+    type: 'separator'
+  },
+  {
     label: i18n.t('menu:app.hide'),
     role: 'hide'
   },
@@ -119,8 +130,11 @@ const appMenuMac: MenuItemConstructorOptions[] = [
 ]
 
 const appMenu: MenuItemConstructorOptions[] = [
-  { ...appMenuCommon.preferences },
   { ...appMenuCommon.update },
+  { type: 'separator' },
+  { ...appMenuCommon.preferences },
+  { ...appMenuCommon.devtools },
+  { type: 'separator' },
   { ...appMenuCommon.quit }
 ]
 
@@ -139,6 +153,12 @@ const helpMenu: MenuItemConstructorOptions[] = [
     label: i18n.t('menu:help.documentation'),
     click: () => {
       shell.openExternal('https://masscode.io/documentation')
+    }
+  },
+  {
+    label: i18n.t('menu:help.twitter'),
+    click: () => {
+      shell.openExternal('https://twitter.com/anton_reshetov')
     }
   },
   {
@@ -214,15 +234,15 @@ const helpMenu: MenuItemConstructorOptions[] = [
     }
   },
   {
-    label: i18n.t('menu:help.donate.payPal'),
+    label: i18n.t('menu:help.donate.gumroad'),
     click: () => {
-      shell.openExternal('https://www.paypal.com/paypalme/antongithub')
+      shell.openExternal('https://antonreshetov.gumroad.com/l/masscode')
     }
   },
   {
-    label: i18n.t('menu:help.twitter'),
+    label: i18n.t('menu:help.donate.payPal'),
     click: () => {
-      shell.openExternal('https://twitter.com/anton_reshetov')
+      shell.openExternal('https://www.paypal.com/paypalme/antongithub')
     }
   },
   {
@@ -329,6 +349,26 @@ const viewMenu: MenuItemConstructorOptions[] = [
         }
       }
     ]
+  },
+  {
+    label: i18n.t('menu:view.hideSubfolderSnippets'),
+    type: 'checkbox',
+    checked: store.app.get('hideSubfolderSnippets'),
+    click: () => {
+      BrowserWindow.getFocusedWindow()?.webContents.send(
+        'main-menu:hide-subfolder-snippets'
+      )
+    }
+  },
+  {
+    label: i18n.t('menu:view.compactMode'),
+    type: 'checkbox',
+    checked: store.app.get('compactMode'),
+    click: () => {
+      BrowserWindow.getFocusedWindow()?.webContents.send(
+        'main-menu:compact-mode-snippets'
+      )
+    }
   }
 ]
 
@@ -403,6 +443,18 @@ const markdownMenu: MenuItemConstructorOptions[] = [
     }
   },
   {
+    label: i18n.t('menu:editor.previewMindmap'),
+    accelerator: 'Shift+CommandOrControl+I',
+    click: () => {
+      BrowserWindow.getFocusedWindow()?.webContents.send(
+        'main-menu:preview-mindmap'
+      )
+    }
+  },
+  {
+    type: 'separator'
+  },
+  {
     label: i18n.t('menu:markdown.presentationMode'),
     accelerator: 'Alt+CommandOrControl+P',
     click: () => {
@@ -446,6 +498,27 @@ const editMenu: MenuItemConstructorOptions[] = [
   }
 ]
 
+const historyMenu: MenuItemConstructorOptions[] = [
+  {
+    label: i18n.t('menu:history.back'),
+    accelerator: 'CommandOrControl+[',
+    click: () => {
+      BrowserWindow.getFocusedWindow()?.webContents.send(
+        'main-menu:history-back'
+      )
+    }
+  },
+  {
+    label: i18n.t('menu:history.forward'),
+    accelerator: 'CommandOrControl+]',
+    click: () => {
+      BrowserWindow.getFocusedWindow()?.webContents.send(
+        'main-menu:history-forward'
+      )
+    }
+  }
+]
+
 const menuItems: MenuItemConstructorOptions[] = [
   {
     label: i18n.t('menu:app.label'),
@@ -470,6 +543,10 @@ const menuItems: MenuItemConstructorOptions[] = [
   {
     label: i18n.t('menu:markdown.label'),
     submenu: markdownMenu
+  },
+  {
+    label: i18n.t('menu:history.label'),
+    submenu: historyMenu
   },
   {
     label: i18n.t('menu:help.label'),

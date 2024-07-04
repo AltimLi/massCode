@@ -18,6 +18,7 @@ import mermaid from 'mermaid'
 import { useHljsTheme, goToSnippet } from '@/composable'
 import { useCodemirror } from '@/composable/codemirror'
 import { nanoid } from 'nanoid'
+import { useMagicKeys } from '@vueuse/core'
 
 const isDev = import.meta.env.DEV
 
@@ -38,6 +39,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const appStore = useAppStore()
 const snippetStore = useSnippetStore()
+const { escape } = useMagicKeys()
 
 const renderedHtml = ref()
 
@@ -103,6 +105,8 @@ onMounted(() => {
 })
 
 const render = () => {
+  if (!props.value) return
+
   const raw = marked.parse(props.value)
 
   let html = sanitizeHtml(raw, {
@@ -200,6 +204,8 @@ const render = () => {
     : html.replace(re, `src="${path}/`)
 
   renderedHtml.value = html
+
+  nextTick(() => initMermaid())
 }
 
 const onLink = async (e: Event) => {
@@ -212,7 +218,7 @@ const onLink = async (e: Event) => {
 
   if (el.classList.contains('snippet-link')) {
     const { snippetId } = el.dataset
-    if (snippetId) goToSnippet(snippetId)
+    if (snippetId) goToSnippet(snippetId, true)
   }
 }
 
@@ -265,6 +271,10 @@ watch(
     render()
   }
 )
+
+watch(escape, () => {
+  snippetStore.isMarkdownPreview = false
+})
 
 init()
 

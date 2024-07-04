@@ -1,9 +1,6 @@
 <template>
   <div class="snippet-screenshot">
-    <div
-      class="tools"
-      :class="{ 'no-top-border': snippetStore.isFragmentsShow }"
-    >
+    <SnippetHeaderTools>
       <div class="left">
         <div class="tools__item">
           <AppCheckbox
@@ -25,12 +22,21 @@
       </div>
       <div class="right">
         <AppActionButton
-          v-tooltip="i18n.t('saveScreenshot')"
-          @click="onSaveScreenshot">
+          v-tooltip="`${i18n.t('button.saveAs')} PNG`"
+          @click="onSaveScreenshot('png')"
+        >
+          PNG &nbsp;
+          <UniconsFileDownload />
+        </AppActionButton>
+        <AppActionButton
+          v-tooltip="`${i18n.t('button.saveAs')} SVG`"
+          @click="onSaveScreenshot('svg')"
+        >
+          SVG &nbsp;
           <UniconsFileDownload />
         </AppActionButton>
       </div>
-    </div>
+    </SnippetHeaderTools>
     <PerfectScrollbar>
       <div class="content">
         <div
@@ -82,7 +88,7 @@
                   </g>
                 </svg>
               </div>
-              <div v-html="renderer" />
+              <div ref="editorRef" />
             </div>
           </div>
           <div class="transparent" />
@@ -93,22 +99,20 @@
         </div>
       </div>
     </PerfectScrollbar>
-    <div
-      ref="previewRef"
-      class="preview"
-    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { useAppStore } from '@/store/app'
-import hljs from 'highlight.js'
-import html2canvas from 'html2canvas'
 import interact from 'interactjs'
 import { computed, onMounted, ref, watch } from 'vue'
-import { useHljsTheme } from '@/composable'
-import { store, track, i18n } from '@/electron'
+import { store, i18n } from '@/electron'
+import { track } from '@/services/analytics'
 import { useSnippetStore } from '@/store/snippets'
+import { useMagicKeys } from '@vueuse/core'
+import domToImage from 'dom-to-image'
+import CodeMirror from 'codemirror'
+import { getThemeName } from '../editor/themes'
 
 const GUTTER_RIGHT_OFFSET = 10
 const GUTTER_WIDTH = 8
@@ -125,18 +129,19 @@ const props = defineProps<Props>()
 
 const appStore = useAppStore()
 const snippetStore = useSnippetStore()
+// eslint-disable-next-line camelcase
+const { escape, Meta_C, Ctrl_C } = useMagicKeys()
 
 const frameRef = ref<HTMLElement>()
 const snippetRef = ref<HTMLElement>()
-const previewRef = ref<HTMLElement>()
 const gutterRef = ref<HTMLElement>()
+const editorRef = ref<HTMLElement>()
 
 const gutterWidth = ref(GUTTER_WIDTH + 'px')
 const offsetGutterRight = ref(GUTTER_RIGHT_OFFSET + 'px')
 
 const forceRefresh = ref()
 
-const font = computed(() => appStore.editor.fontFamily)
 const frameWidthC = computed(() => appStore.screenshot.width + 'px')
 const transparentOpacity = computed(() =>
   appStore.isLightTheme ? '75%' : '10%'
@@ -150,13 +155,10 @@ const colorBgStyle = computed(() => {
     backgroundImage: `linear-gradient(45deg, ${appStore.screenshot.gradient[0]}, ${appStore.screenshot.gradient[1]})`
   }
 })
+const fontSize = computed(() => appStore.editor.fontSize + 'px')
+const fontFamily = computed(() => appStore.editor.fontFamily)
 
-const renderer = computed(() => {
-  const language = hljs.getLanguage(props.lang) ? props.lang : 'plaintext'
-  return `<pre><code class="language-${props.lang} hljs">${
-    hljs.highlight(props.snippet, { language }).value
-  }</code></pre>`
-})
+let editor: CodeMirror.Editor
 
 const height = computed(() => {
   // eslint-disable-next-line no-unused-expressions
@@ -170,48 +172,39 @@ const height = computed(() => {
   return window.innerHeight - result + 'px'
 })
 
+const setValue = (value: string) => {
+  if (!editor) return
+
+  const cursor = editor.getCursor()
+  editor.setValue(value)
+
+  if (cursor) editor.setCursor(cursor)
+}
+
+const setLang = (lang: string) => {
+  if (!editor) return
+  editor.setOption('mode', lang)
+}
+
+const setTheme = (theme: string) => {
+  if (!editor) return
+  editor.setOption('theme', theme)
+}
+
 const init = () => {
-  hljs.registerAliases('apache_conf', { languageName: 'apache' })
-  hljs.registerAliases('c_cpp', { languageName: 'cpp' })
-  hljs.registerAliases('graphqlschema', { languageName: 'graphql' })
-}
-
-const onSaveScreenshot = async () => {
-  const canvas = await html2canvas(snippetRef.value!, {
-    backgroundColor: null
+  editor = CodeMirror(editorRef.value!, {
+    value: props.snippet,
+    mode: props.lang,
+    theme: appStore.screenshot.darkMode
+      ? getThemeName('dark:material')
+      : getThemeName('light:github'),
+    lineNumbers: false,
+    lineWrapping: true,
+    tabSize: appStore.editor.tabSize,
+    scrollbarStyle: 'null',
+    readOnly: true
   })
-  previewRef.value?.appendChild(canvas)
 
-  const a = document.createElement('a')
-  const img = canvas.toDataURL('image/png')
-
-  a.href = img
-  a.download = `${props.name}.png`
-  a.click()
-  track('snippets/create-screenshot')
-}
-
-watch(
-  () => appStore.screenshot.darkMode,
-  v => {
-    if (v) {
-      useHljsTheme('dark')
-    } else {
-      useHljsTheme('light')
-    }
-  },
-  { immediate: true }
-)
-
-watch(
-  () => appStore.screenshot,
-  v => {
-    store.preferences.set('screenshot', JSON.parse(JSON.stringify(v)))
-  },
-  { deep: true }
-)
-
-onMounted(() => {
   interact(frameRef.value!).resizable({
     allowFrom: gutterRef.value!,
     onmove: e => {
@@ -235,47 +228,109 @@ onMounted(() => {
       }
     }
   })
+}
+
+const onSaveScreenshot = async (type: 'png' | 'svg' = 'png') => {
+  let data = ''
+
+  if (type === 'png') {
+    data = await domToImage.toPng(snippetRef.value!)
+  }
+
+  if (type === 'svg') {
+    data = await domToImage.toSvg(snippetRef.value!)
+  }
+
+  const a = document.createElement('a')
+  a.href = data
+  a.download = `${props.name}.${type}`
+  a.click()
+
+  track('snippets/create-screenshot')
+}
+
+const copyToClipboard = async () => {
+  const data = await domToImage.toBlob(snippetRef.value!)
+  navigator.clipboard.write([new ClipboardItem({ 'image/png': data })])
+  track('snippets/create-screenshot')
+}
+
+watch(
+  () => appStore.screenshot.darkMode,
+  v => {
+    if (v) {
+      setTheme(getThemeName('dark:material')!)
+    } else {
+      setTheme(getThemeName('light:github')!)
+    }
+  }
+)
+
+watch(
+  () => appStore.screenshot,
+  v => {
+    store.preferences.set('screenshot', JSON.parse(JSON.stringify(v)))
+  },
+  { deep: true }
+)
+
+watch(
+  () => props.snippet,
+  v => setValue(v)
+)
+watch(
+  () => props.lang,
+  v => setLang(v)
+)
+
+watch(escape, () => {
+  snippetStore.isScreenshotPreview = false
+})
+
+watch(Meta_C, v => {
+  if (v) {
+    copyToClipboard()
+  }
+})
+watch(Ctrl_C, v => {
+  if (v) {
+    copyToClipboard()
+  }
+})
+
+onMounted(() => {
+  init()
 })
 
 window.addEventListener('resize', () => {
   forceRefresh.value = Math.random()
 })
-
-init()
 </script>
 
 <style lang="scss" scoped>
 .snippet-screenshot {
   --color-bg-transparent: hsla(0, 0%, v-bind(transparentOpacity));
 
-  :deep(code) {
-    font-family: v-bind(font) !important;
-  }
   :deep(pre) {
     white-space: pre-wrap;
     font-size: 12px;
   }
-  :deep(code) {
-    padding: 0;
-  }
   :deep(.ps) {
     height: v-bind(height);
   }
-  .tools {
-    display: flex;
-    justify-content: space-between;
+  :deep(.CodeMirror) {
+    height: 100%;
+    font-size: v-bind(fontSize);
+    font-family: v-bind(fontFamily);
+    line-height: calc(v-bind(fontSize) * 1.5);
+  }
+  .left {
+    gap: var(--spacing-sm);
     align-items: center;
-    padding: 4px var(--spacing-xs);
-    border-top: 1px solid var(--color-border);
-    border-bottom: 1px solid var(--color-border);
-    &.no-top-border {
-      border-top: none;
-    }
-    .left {
-      gap: var(--spacing-sm);
-      align-items: center;
-      display: flex;
-    }
+    display: flex;
+  }
+  .right {
+    display: flex;
   }
   .content {
     flex: 1;
@@ -330,6 +385,9 @@ init()
     border-radius: 12px;
     background-color: v-bind(colorBodyBg);
     user-select: none;
+    .window-controls {
+      margin-bottom: var(--spacing-xs);
+    }
   }
 }
 </style>

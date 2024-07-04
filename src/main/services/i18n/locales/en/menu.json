@@ -5,7 +5,7 @@
     "update": {
       "label": "Check for Updates....",
       "message": "Version {{newVersion}} is now available for download.\nYour version is {{oldVersion}}.",
-      "button": ["Go to Github", "OK"],
+      "button": ["Go to Download", "OK"],
       "noUpdate": "There are currently no updates available."
     },
     "quit": "Quit massCode",
@@ -29,7 +29,8 @@
     },
     "donate": {
       "openCollective": "Donate on Open Collective",
-      "payPal": "Donate via PayPal"
+      "payPal": "Donate via PayPal",
+      "gumroad": "Donate via Gumroad (Visa, Mastercard, etc.)"
     },
     "twitter": "Twitter",
     "devTools": "Toggle Developer Tools",
@@ -48,7 +49,9 @@
       "dateModified": "Date Modified",
       "dateCreated": "Date Created",
       "name": "Name"
-    }
+    },
+    "hideSubfolderSnippets": "Hide Subfolder Snippets",
+    "compactMode": "Compact Mode"
   },
   "edit": {
     "label": "Edit",
@@ -67,6 +70,7 @@
     "previewCode": "Preview Code",
     "previewScreenshot": "Preview Screenshot",
     "previewMarkdown": "Preview Markdown",
+    "previewMindmap": "Preview Mindmap",
     "fontSizeIncrease": "Font Size Increase",
     "fontSizeDecrease": "Font Size Decrease",
     "fontSizeReset": "Font Size Reset"
@@ -75,5 +79,13 @@
     "label": "Markdown",
     "presentationMode": "Presentation Mode",
     "preview": "Preview"
+  },
+  "history": {
+    "label": "History",
+    "back": "Back",
+    "forward": "Forward"
+  },
+  "devtools": {
+    "label": "Developer Tools"
   }
 }

@@ -14,17 +14,18 @@
       "wordWrap": "Quebra de linha",
       "off": "Desligado"
     },
-    "tabSize": "Tamanho da guia",
+    "tabSize": "Tamanho da aba",
     "showInvisibles": "Mostrar itens ocultos",
     "highlightLine": "Destacar linha",
     "highlightGutter": "Destacar área em branco",
+    "matchBrackets": "Corresponder parênteses",
     "prettier": {
       "label": "Embelezar",
       "trailingComma": {
         "label": "Vírgula à direita",
         "none": "Nenhum",
         "all": "Tudo",
-        "es6": "ES6"
+        "es5": "ES5"
       },
       "semi": "Semi",
       "singleQuote": "Citação única"
@@ -40,5 +41,9 @@
   },
   "language": {
     "label": "Idioma"
+ },
+  "markdown": {
+    "label": "Marcador",
+    "codeRenderer": "Renderizador de bloco de código"
   }
 }

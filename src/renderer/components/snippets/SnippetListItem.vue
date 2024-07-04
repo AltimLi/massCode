@@ -3,9 +3,10 @@
     ref="itemRef"
     class="item"
     :class="{
-      'is-selected': !isFocused && isSelected,
+      'is-selected': isSelected,
       'is-focused': isFocused,
-      'is-highlighted': isHighlighted || isHighlightedMultiple
+      'is-highlighted': isHighlighted || isHighlightedMultiple,
+      'is-compact': snippetStore.compactMode
     }"
     :draggable="true"
     @click="onClickSnippet"
@@ -15,12 +16,23 @@
   >
     <div class="header">
       <div class="name">
-        <span>
-          {{ name || 'Untitled snippet' }}
-        </span>
+        <div class="name__inner">
+          <span>
+            {{ name || 'Untitled snippet' }}
+          </span>
+          <span
+            v-if="snippetStore.compactMode"
+            class="date"
+          >
+            {{ dateFormat }}
+          </span>
+        </div>
       </div>
     </div>
-    <div class="footer">
+    <div
+      v-if="!snippetStore.compactMode"
+      class="footer"
+    >
       <div class="folder">
         {{ folder || 'Inbox' }}
       </div>
@@ -32,7 +44,8 @@
 </template>
 
 <script setup lang="ts">
-import { ipc, track } from '@/electron'
+import { ipc } from '@/electron'
+import { track } from '@/services/analytics'
 import { useFolderStore } from '@/store/folders'
 import { useSnippetStore } from '@/store/snippets'
 import type {
@@ -45,6 +58,7 @@ import type { SystemFolderAlias } from '@shared/types/renderer/sidebar'
 import { useTagStore } from '@/store/tags'
 import { isToday, format } from 'date-fns'
 import { emitter } from '@/composable'
+import { useAppStore } from '@/store/app'
 
 interface Props {
   id: string
@@ -59,6 +73,7 @@ const props = defineProps<Props>()
 const snippetStore = useSnippetStore()
 const folderStore = useFolderStore()
 const tagStore = useTagStore()
+const appStore = useAppStore()
 
 const itemRef = ref()
 const isFocused = ref(false)
@@ -86,15 +101,15 @@ onClickOutside(itemRef, () => {
 
 const onClickSnippet = (e: MouseEvent) => {
   if (e.shiftKey) {
-    if (snippetStore.selectedIndex < props.index) {
-      snippetStore.selectedMultiple = snippetStore.snippets.slice(
-        snippetStore.selectedIndex,
-        props.index + 1
-      )
-    } else {
-      snippetStore.selectedMultiple = snippetStore.snippets.slice(
+    if (snippetStore.selectedIndex > props.index) {
+      snippetStore.selectedMultiple = snippetStore.snippetsByFilter.slice(
         props.index,
         snippetStore.selectedIndex + 1
+      )
+    } else {
+      snippetStore.selectedMultiple = snippetStore.snippetsByFilter.slice(
+        snippetStore.selectedIndex,
+        props.index + 1
       )
     }
     snippetStore.selected = undefined
@@ -105,6 +120,7 @@ const onClickSnippet = (e: MouseEvent) => {
     snippetStore.selectedMultiple = []
     snippetStore.getSnippetsById(props.id)
     tagStore.getTags()
+    appStore.addToHistory(props.id)
   }
 }
 
@@ -318,18 +334,18 @@ onUnmounted(() => {
       top: 0px;
       left: 8px;
       right: 8px;
-      bottom: 0px;
+      bottom: 3px;
       border-radius: 5px;
       z-index: 1;
     }
   }
   &.is-focused {
     &::before {
-      background-color: var(--color-primary);
+      background-color: var(--color-primary) !important;
     }
     .name,
     .footer {
-      color: #fff;
+      color: #fff !important;
     }
   }
   &.is-selected {
@@ -348,6 +364,14 @@ onUnmounted(() => {
       outline-offset: -2px;
     }
   }
+  &.is-compact {
+    .date {
+      color: var(--color-text-3);
+      font-size: 11px;
+      position: relative;
+      top: 1px;
+    }
+  }
 }
 .name {
   display: table;
@@ -357,10 +381,15 @@ onUnmounted(() => {
   position: relative;
   z-index: 1;
   line-height: 24px;
-  span {
-    display: -webkit-box;
-    -webkit-line-clamp: 1;
-    -webkit-box-orient: vertical;
+  &__inner {
+    display: flex;
+    justify-content: space-between;
+    gap: 4px;
+    span {
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+    }
   }
 }
 .footer {

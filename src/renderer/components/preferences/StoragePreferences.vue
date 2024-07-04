@@ -17,6 +17,9 @@
           <AppButton @click="onClickNew">
             {{ i18n.t('button.newStorage') }}
           </AppButton>
+          <AppButton @click="onClickReload">
+            {{ i18n.t('button.reloadStorage') }}
+          </AppButton>
         </template>
         <template #desc>
           {{ i18n.t('special:description.storage') }}
@@ -48,7 +51,8 @@
 </template>
 
 <script setup lang="ts">
-import { ipc, store, db, track, i18n } from '@/electron'
+import { ipc, store, db, i18n } from '@/electron'
+import { track } from '@/services/analytics'
 import { useFolderStore } from '@/store/folders'
 import { useSnippetStore } from '@/store/snippets'
 import type { MessageBoxRequest, DialogRequest } from '@shared/types/main'
@@ -208,6 +212,11 @@ const resetStore = () => {
 
   snippetStore.$reset()
   folderStore.$reset()
+}
+
+const onClickReload = () => {
+  ipc.invoke('main:restart-api', {})
+  snippetStore.getSnippets()
 }
 </script>
 

@@ -25,7 +25,7 @@
         "label": "末尾のコンマ",
         "none": "何もしない",
         "all": "すべて",
-        "es6": "ES6準拠"
+        "es5": "ES5準拠"
       },
       "semi": "セミコロン",
       "singleQuote": "シングルクォーテーション"
@@ -41,5 +41,9 @@
   },
   "language": {
     "label": "表示言語"
+  },
+  "markdown": {
+    "label": "Markdown",
+    "codeRenderer": "コードブロックレンダラ"
   }
 }

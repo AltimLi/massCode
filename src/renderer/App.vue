@@ -21,14 +21,18 @@
       {{ i18n.t('updateAvailable') }}
     </span>
   </div>
+  <!-- TODO: Подумать о дальнейшем управлении глобальным модальным окном -->
+  <AppModal v-model:show="appStore.showModal">
+    <AppFolderIcons />
+  </AppModal>
 </template>
 
 <script setup lang="ts">
 import router from '@/router'
 import { nextTick, ref, watch } from 'vue'
-import { ipc, store, track, i18n } from './electron'
+import { ipc, store, i18n } from './electron'
+import { track } from '@/services/analytics'
 import { EDITOR_DEFAULTS, useAppStore } from './store/app'
-import { repository } from '../../package.json'
 import { useSnippetStore } from './store/snippets'
 import {
   onAddNewSnippet,
@@ -85,6 +89,8 @@ const init = async () => {
   }
 
   snippetStore.sort = store.app.get('sort')
+  snippetStore.hideSubfolderSnippets = store.app.get('hideSubfolderSnippets')
+  snippetStore.compactMode = store.app.get('compactMode')
 
   if (theme) {
     appStore.setTheme(theme)
@@ -105,7 +111,10 @@ const setTheme = (theme: string) => {
 }
 
 const onClickUpdate = () => {
-  ipc.invoke('main:open-url', `${repository}/releases`)
+  ipc.invoke(
+    'main:open-url',
+    'https://masscode.io/download/latest-release.html'
+  )
   track('app/update')
 }
 
@@ -132,7 +141,12 @@ watch(
 watch(
   () => [snippetStore.selectedId, snippetStore.fragment],
   () => {
-    snippetStore.isMarkdownPreview = false
+    const lang = snippetStore.selected?.content[snippetStore.fragment]?.language
+
+    if (lang && lang !== 'markdown') {
+      snippetStore.isMarkdownPreview = false
+      snippetStore.isMindmapPreview = false
+    }
   }
 )
 
@@ -168,12 +182,16 @@ ipc.on('main:focus', () => {
 ipc.on('main:app-protocol', (event, payload: string) => {
   if (/^masscode:\/\/snippets/.test(payload)) {
     const snippetId = payload.split('/').pop()
-    if (snippetId) goToSnippet(snippetId)
+    if (snippetId) goToSnippet(snippetId, true)
   }
 })
 
 ipc.on('main-menu:preferences', () => {
   router.push('/preferences')
+})
+
+ipc.on('main-menu:devtools', () => {
+  router.push('/devtools')
 })
 
 ipc.on('main-menu:new-folder', async () => {
@@ -190,7 +208,7 @@ ipc.on('main-menu:new-fragment', () => {
 
 ipc.on('main-menu:preview-markdown', async () => {
   if (snippetStore.currentLanguage === 'markdown') {
-    snippetStore.isMarkdownPreview = !snippetStore.isMarkdownPreview
+    snippetStore.togglePreview('markdown')
     track('snippets/markdown-preview')
   }
 })
@@ -201,7 +219,10 @@ ipc.on('main-menu:presentation-mode', async () => {
 })
 
 ipc.on('main-menu:preview-code', () => {
-  snippetStore.isCodePreview = !snippetStore.isCodePreview
+  snippetStore.togglePreview('code')
+})
+ipc.on('main-menu:preview-mindmap', () => {
+  snippetStore.togglePreview('mindmap')
 })
 
 ipc.on('main-menu:copy-snippet', () => {
@@ -218,6 +239,16 @@ ipc.on('main-menu:search', () => {
 
 ipc.on('main-menu:sort-snippets', (event, sort) => {
   snippetStore.setSort(sort)
+})
+
+ipc.on('main-menu:hide-subfolder-snippets', () => {
+  snippetStore.hideSubfolderSnippets = !snippetStore.hideSubfolderSnippets
+  store.app.set('hideSubfolderSnippets', snippetStore.hideSubfolderSnippets)
+})
+
+ipc.on('main-menu:compact-mode-snippets', () => {
+  snippetStore.compactMode = !snippetStore.compactMode
+  store.app.set('compactMode', snippetStore.compactMode)
 })
 
 ipc.on('main-menu:add-description', async () => {
@@ -238,6 +269,14 @@ ipc.on('main-menu:font-size-decrease', async () => {
 ipc.on('main-menu:font-size-reset', async () => {
   appStore.editor.fontSize = EDITOR_DEFAULTS.fontSize
   emitter.emit('editor:refresh', true)
+})
+
+ipc.on('main-menu:history-back', async () => {
+  appStore.historyBack()
+})
+
+ipc.on('main-menu:history-forward', async () => {
+  appStore.historyForward()
 })
 
 ipc.on('api:snippet-create', (event, body: Snippet) => {

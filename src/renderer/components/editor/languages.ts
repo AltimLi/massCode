@@ -93,6 +93,12 @@ export const languages: LanguageOption[] = [
     scopeName: 'source.batchfile'
   },
   {
+    name: 'Bicep',
+    value: 'bicep',
+    grammar: () => import('./grammars/bicep.tmLanguage.json'),
+    scopeName: 'source.bicep'
+  },
+  {
     name: 'C and C++',
     value: 'c_cpp',
     grammar: () => import('./grammars/cpp.tmLanguage.json'),
@@ -376,12 +382,6 @@ export const languages: LanguageOption[] = [
     scopeName: 'source.io'
   },
   {
-    name: 'Pug',
-    value: 'pug',
-    grammar: () => import('./grammars/pug.tmLanguage.json'),
-    scopeName: 'text.pug'
-  },
-  {
     name: 'Java',
     value: 'java',
     grammar: () => import('./grammars/java.tmLanguage.json'),
@@ -435,6 +435,12 @@ export const languages: LanguageOption[] = [
     value: 'kotlin',
     grammar: () => import('./grammars/kotlin.tmLanguage.json'),
     scopeName: 'source.kotlin'
+  },
+  {
+    name: 'Kusto (KQL)',
+    value: 'kusto',
+    grammar: () => import('./grammars/kusto.tmLanguage.json'),
+    scopeName: 'source.kusto'
   },
   {
     name: 'LaTeX',
@@ -622,7 +628,12 @@ export const languages: LanguageOption[] = [
     grammar: () => import('./grammars/pig.tmLanguage.json'),
     scopeName: 'source.pig'
   },
-  { name: 'Plain Text', value: 'plain_text' },
+  {
+    name: 'Plain Text',
+    value: 'plain_text',
+    grammar: () => import('./grammars/plain-text.tmLanguage.json'),
+    scopeName: 'text.plain'
+  },
   {
     name: 'Powershell',
     value: 'powershell',
@@ -658,6 +669,12 @@ export const languages: LanguageOption[] = [
     value: 'protobuf',
     grammar: () => import('./grammars/protobuf.tmLanguage.json'),
     scopeName: 'source.proto'
+  },
+  {
+    name: 'Pug',
+    value: 'pug',
+    grammar: () => import('./grammars/pug.tmLanguage.json'),
+    scopeName: 'text.pug'
   },
   {
     name: 'Puppet',
@@ -856,12 +873,6 @@ export const languages: LanguageOption[] = [
     value: 'tex',
     grammar: () => import('./grammars/tex.tmLanguage.json'),
     scopeName: 'text.tex'
-  },
-  {
-    name: 'Plain Text',
-    value: 'plain_text',
-    grammar: () => import('./grammars/plain-text.tmLanguage.json'),
-    scopeName: 'text.plain'
   },
   {
     name: 'Textile',

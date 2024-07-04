@@ -47,7 +47,8 @@ import {
   ref,
   watch
 } from 'vue'
-import { i18n, ipc, track } from '@/electron'
+import { i18n, ipc } from '@/electron'
+import { track } from '@/services/analytics'
 import { languages } from './languages'
 import { useAppStore } from '@/store/app'
 import { useSnippetStore } from '@/store/snippets'
@@ -188,8 +189,8 @@ const init = async () => {
     }
   })
 
-  if (snippetStore.searchQuery) {
-    findAll(snippetStore.searchQuery)
+  if (snippetStore.searchQueryEscaped) {
+    findAll(snippetStore.searchQueryEscaped)
   }
 }
 
@@ -302,8 +303,8 @@ watch(
   () => {
     setValue(props.modelValue)
 
-    if (snippetStore.searchQuery) {
-      findAll(snippetStore.searchQuery)
+    if (snippetStore.searchQueryEscaped) {
+      findAll(snippetStore.searchQueryEscaped)
     }
 
     clearHistory()
@@ -318,7 +319,7 @@ watch(
 )
 
 watch(
-  () => snippetStore.searchQuery,
+  () => snippetStore.searchQueryEscaped,
   v => {
     if (v) {
       findAll(v)
@@ -339,6 +340,10 @@ emitter.on('snippet:format', () => format())
 
 onMounted(() => {
   init()
+
+  window.addEventListener('resize', () => {
+    forceRefresh.value = Math.random()
+  })
 })
 
 onUnmounted(() => {

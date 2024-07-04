@@ -8,7 +8,7 @@
         <AppCheckbox
           v-model="appStore.codePreview.darkMode"
           name="Dark mode"
-          label="Dark mode"
+          :label="i18n.t('darkMode')"
         />
       </div>
       <div class="right">
@@ -46,10 +46,14 @@ import { useSnippetStore } from '@/store/snippets'
 import { computed, ref, onMounted, watch } from 'vue'
 import interact from 'interactjs'
 import { useAppStore } from '@/store/app'
-import { i18n, ipc, track } from '@/electron'
+import { i18n, ipc } from '@/electron'
+import { track } from '@/services/analytics'
+import { useMagicKeys } from '@vueuse/core'
 
 const snippetStore = useSnippetStore()
 const appStore = useAppStore()
+const { escape } = useMagicKeys()
+
 const srcDoc = ref()
 const height = computed(() => appStore.sizes.codePreviewHeight + 'px')
 
@@ -90,19 +94,30 @@ const setSrcDoc = () => {
     }
   `
 
-  srcDoc.value = `<html>
-    <body>${html || htmlDefault}<body>
-    <style>${cssDefault + css}<style>
-  </html>
+  srcDoc.value = `<!DOCTYPE html>
+  <html>
+    <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${snippetStore.selected?.name}</title>
+  </head>
+    <body>${html || htmlDefault}</body>
+    <style>${cssDefault + css}</style>
+</html>
   `
 }
+
 setSrcDoc()
 
-const onSaveToHtml = () => {
+const onSaveToHtml = async () => {
+  const formatted = await ipc.invoke('main:prettier', {
+    source: srcDoc.value,
+    parser: 'html'
+  })
+
   const a = document.createElement('a')
 
-  a.href = `data:text/plain;charset=utf-8, ${encodeURIComponent(srcDoc.value)}`
-  console.log(a)
+  a.href = `data:text/plain;charset=utf-8, ${encodeURIComponent(formatted)}`
   a.download = `${snippetStore.selected?.name}.html`
   a.click()
 }
@@ -111,6 +126,10 @@ const onClickSnippetShowcase = () => {
   ipc.invoke('main:open-url', 'https://masscode.io/snippets')
   track('app/open-url', 'https://masscode.io/snippets')
 }
+
+watch(escape, () => {
+  snippetStore.isCodePreview = false
+})
 
 onMounted(() => {
   interact(previewRef.value).resizable({

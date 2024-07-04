@@ -183,22 +183,22 @@ export const subscribeToContextMenu = () => {
         if (type === 'folder' || type === 'all' || type === 'inbox') {
           defaultMenu.forEach(i => {
             menu.append(new MenuItem(i))
-            menu.popup({ window: BrowserWindow.getFocusedWindow()! })
           })
+          menu.popup({ window: BrowserWindow.getFocusedWindow()! })
         }
 
         if (type === 'favorites') {
           favoritesMenu.forEach(i => {
             menu.append(new MenuItem(i))
-            menu.popup({ window: BrowserWindow.getFocusedWindow()! })
           })
+          menu.popup({ window: BrowserWindow.getFocusedWindow()! })
         }
 
         if (type === 'trash') {
           trashMenu.forEach(i => {
             menu.append(new MenuItem(i))
-            menu.popup({ window: BrowserWindow.getFocusedWindow()! })
           })
+          menu.popup({ window: BrowserWindow.getFocusedWindow()! })
         }
 
         menu.on('menu-will-close', () => {
@@ -265,7 +265,7 @@ export const subscribeToContextMenu = () => {
                 {
                   message: i18n.t('dialog:deleteConfirm', { name }),
                   detail: i18n.t('dialog:allSnippetsMoveToTrash'),
-                  buttons: [i18n.t('delete'), i18n.t('cancel')],
+                  buttons: [i18n.t('delete'), i18n.t('button.cancel')],
                   defaultId: 0,
                   cancelId: 1
                 }
@@ -311,6 +311,17 @@ export const subscribeToContextMenu = () => {
           {
             label: i18n.t('defaultLanguage'),
             submenu: createLanguageMenu()
+          },
+          { type: 'separator' },
+          {
+            label: i18n.t('set-custom-icon'),
+            click: () => {
+              resolve({
+                action: 'set-custom-icon',
+                type,
+                data: undefined
+              })
+            }
           }
         ]
 
@@ -323,7 +334,7 @@ export const subscribeToContextMenu = () => {
                 {
                   message: i18n.t('dialog:deleteConfirm', { name }),
                   detail: i18n.t('dialog:deleteTag'),
-                  buttons: [i18n.t('delete'), i18n.t('cancel')],
+                  buttons: [i18n.t('delete'), i18n.t('button.cancel')],
                   defaultId: 0,
                   cancelId: 1
                 }
@@ -381,22 +392,22 @@ export const subscribeToContextMenu = () => {
         if (type === 'folder') {
           folderMenu.forEach(i => {
             menu.append(new MenuItem(i))
-            menu.popup({ window: BrowserWindow.getFocusedWindow()! })
           })
+          menu.popup({ window: BrowserWindow.getFocusedWindow()! })
         }
 
         if (type === 'tag') {
           tagMenu.forEach(i => {
             menu.append(new MenuItem(i))
-            menu.popup({ window: BrowserWindow.getFocusedWindow()! })
           })
+          menu.popup({ window: BrowserWindow.getFocusedWindow()! })
         }
 
         if (type === 'trash') {
           trashMenu.forEach(i => {
             menu.append(new MenuItem(i))
-            menu.popup({ window: BrowserWindow.getFocusedWindow()! })
           })
+          menu.popup({ window: BrowserWindow.getFocusedWindow()! })
         }
 
         menu.on('menu-will-close', () => {

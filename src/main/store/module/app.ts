@@ -9,6 +9,8 @@ export default new Store<AppStore>({
     bounds: {},
     sidebarWidth: 180,
     snippetListWidth: 250,
-    sort: 'updatedAt'
+    sort: 'updatedAt',
+    hideSubfolderSnippets: false,
+    compactMode: false
   }
 })

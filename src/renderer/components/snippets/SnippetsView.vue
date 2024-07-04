@@ -7,11 +7,8 @@
   >
     <template v-if="snippetStore.selected">
       <SnippetHeader />
-      <!-- TODO: упростить условия отображения -->
       <EditorCodemirror
-        v-if="
-          !snippetStore.isMarkdownPreview && !snippetStore.isScreenshotPreview
-        "
+        v-if="isEditorShow"
         v-model="snippet"
         v-model:lang="lang"
         :snippet-id="snippetStore.selectedId!"
@@ -19,17 +16,13 @@
         :is-search-mode="isSearchMode"
         :fragments="snippetStore.isFragmentsShow"
       />
-      <EditorPreview
-        v-if="
-          snippetStore.isCodePreview &&
-            !snippetStore.isScreenshotPreview &&
-            !snippetStore.isMarkdownPreview
-        "
-      />
+      <EditorPreview v-if="snippetStore.isCodePreview" />
       <TheMarkdown
-        v-if="
-          snippetStore.isMarkdownPreview && !snippetStore.isScreenshotPreview
-        "
+        v-if="snippetStore.isMarkdownPreview"
+        :value="snippetStore.currentContent!"
+      />
+      <MindMap
+        v-if="snippetStore.isMindmapPreview"
         :value="snippetStore.currentContent!"
       />
       <TheScreenshot
@@ -60,6 +53,7 @@ import { useSnippetStore } from '@/store/snippets'
 import { useDebounceFn } from '@vueuse/core'
 import { computed } from 'vue'
 import { i18n } from '@/electron'
+import { track } from '@/services/analytics'
 
 const snippetStore = useSnippetStore()
 
@@ -77,7 +71,16 @@ const lang = computed({
   get: () => snippetStore.currentLanguage || 'plain_text',
   set: v => {
     snippetStore.patchCurrentSnippetContentByKey('language', v)
+    track('snippets/set-language', v)
   }
+})
+
+const isEditorShow = computed(() => {
+  return (
+    !snippetStore.isMarkdownPreview &&
+    !snippetStore.isMindmapPreview &&
+    !snippetStore.isScreenshotPreview
+  )
 })
 
 const isShowPlaceholder = computed(() => {
